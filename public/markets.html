@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEN Bot - Markets</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #121212;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        .price-info {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .current-price {
+            font-size: 24px;
+            color: #4CAF50;
+            margin-bottom: 8px;
+        }
+
+        .price-change {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .price-change.positive {
+            color: #4CAF50;
+        }
+
+        .price-change.negative {
+            color: #f44336;
+        }
+
+        .trading-section {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .trading-toggle {
+            display: flex;
+            background: #222;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .toggle-btn:not(.active) {
+            color: #888;
+        }
+
+        .amount-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #222;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .balance-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            color: #888;
+            font-size: 14px;
+        }
+
+        .admin-fee {
+            background: rgba(244, 67, 54, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            color: #f44336;
+            font-size: 14px;
+        }
+
+        .admin-fee span {
+            font-weight: 500;
+        }
+
+        .trade-button {
+            width: 100%;
+            padding: 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .trade-button:hover {
+            background: #45a049;
+        }
+
+        .trade-button:disabled {
+            background: #333;
+            cursor: not-allowed;
+        }
+
+        .recent-trades {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .trade-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .trade-item:last-child {
+            border-bottom: none;
+        }
+
+        .trade-amount {
+            color: #4CAF50;
+        }
+
+        .trade-time {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            border-top: 1px solid #333;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #888;
+            font-size: 12px;
+            gap: 4px;
+            transition: all 0.3s;
+        }
+
+        .nav-item img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .nav-item.active {
+            color: #4CAF50;
+        }
+
+        .nav-item:hover {
+            color: #4CAF50;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding-bottom: 70px;
+            }
+            
+            .bottom-nav {
+                padding: 8px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="markets-header">
+            <div class="token-info">
+                <h2>GEN/USDT</h2>
+                <div class="price-stats">
+                    <div class="current-price">
+                        <span class="price-value">0.000013</span>
+                        <span class="price-currency">USDT</span>
+                    </div>
+                    <div class="price-change positive">
+                        +2.5% <span class="time-period">24h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="priceChart"></canvas>
+        </div>
+
+        <div class="trading-section">
+            <div class="trading-toggle">
+                <div class="toggle-btn active" data-action="buy">Buy</div>
+                <div class="toggle-btn" data-action="sell">Sell</div>
+            </div>
+
+            <div class="admin-fee">
+                Admin Fee: <span>12%</span> will be deducted from your trade amount
+            </div>
+
+            <div class="input-group">
+                <label>Amount (GEN)</label>
+                <div class="amount-input">
+                    <input type="number" id="tradeAmount" placeholder="0.00" min="0" step="0.01">
+                    <button class="max-btn">MAX</button>
+                </div>
+                <div class="equivalent-value" id="equivalentValue">≈ 0.00 USDT</div>
+            </div>
+
+            <div class="price-info">
+                <div class="price-row">
+                    <span>Price:</span>
+                    <span class="token-price">0.000013 USDT</span>
+                </div>
+                <div class="price-row">
+                    <span>24h High:</span>
+                    <span class="high-price">0.000014 USDT</span>
+                </div>
+                <div class="price-row">
+                    <span>24h Low:</span>
+                    <span class="low-price">0.000012 USDT</span>
+                </div>
+            </div>
+
+            <div class="balance-info">
+                <div class="balance-item">
+                    <span class="label">GEN Balance:</span>
+                    <span class="value" id="genBalance">0.00</span>
+                </div>
+                <div class="balance-item">
+                    <span class="label">USDT Balance:</span>
+                    <span class="value" id="usdtBalance">0.00</span>
+                </div>
+            </div>
+
+            <button id="tradeButton" class="trade-btn buy">Buy GEN</button>
+        </div>
+
+        <div class="recent-trades">
+            <h3>Recent Trades</h3>
+            <div class="trades-list" id="tradesList">
+                <!-- Trades will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <img src="icons/home.svg" alt="Home">
+            <span>Home</span>
+        </a>
+        <a href="markets.html" class="nav-item active">
+            <img src="icons/markets.svg" alt="Markets">
+            <span>Markets</span>
+        </a>
+        <a href="invite.html" class="nav-item">
+            <img src="icons/invite.svg" alt="Invite">
+            <span>Invite</span>
+        </a>
+        <a href="earn.html" class="nav-item">
+            <img src="icons/earn.svg" alt="Earn">
+            <span>Earn</span>
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <img src="icons/wallet.svg" alt="Wallet">
+            <span>Wallet</span>
+        </a>
+    </nav>
+
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <!-- Firebase Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <!-- Firebase Analytics -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
+    <script src="js/realtime.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/tasks.js"></script>
+    <script>
+        // Initialize Telegram Web App
+        window.tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Set theme based on Telegram's color scheme
+        document.documentElement.setAttribute('data-theme', tg.colorScheme);
+        
+        // Initialize real-time data with user ID
+        if (window.realTimeData) {
+            const userId = tg.initDataUnsafe?.user?.id;
+            if (userId) {
+                realTimeData.setUserId(userId);
+            }
+        }
+        
+        // Initialize trade button
+        const tradeButton = document.getElementById('tradeButton');
+        if (tradeButton) {
+            tradeButton.addEventListener('click', () => {
+                // Trade button click handler
+            });
+        }
+    </script>
+</body>
+</html> 

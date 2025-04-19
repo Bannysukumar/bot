@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEN Bot - Home</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #121212;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        .user-info {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-id {
+            color: #888;
+            font-size: 14px;
+        }
+
+        .user-id span {
+            color: #4CAF50;
+            font-weight: 500;
+        }
+
+        .level {
+            background: #4CAF50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .mining-animation {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+        
+        .mining-coin {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #4CAF50;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse 2s infinite;
+        }
+        
+        .mining-rays {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            animation: rotate 4s linear infinite;
+        }
+        
+        .ray {
+            position: absolute;
+            width: 2px;
+            height: 30px;
+            background: #4CAF50;
+            top: 0;
+            left: 50%;
+            transform-origin: bottom center;
+            opacity: 0.5;
+        }
+        
+        .ray:nth-child(1) { transform: rotate(0deg); }
+        .ray:nth-child(2) { transform: rotate(45deg); }
+        .ray:nth-child(3) { transform: rotate(90deg); }
+        .ray:nth-child(4) { transform: rotate(135deg); }
+        .ray:nth-child(5) { transform: rotate(180deg); }
+        .ray:nth-child(6) { transform: rotate(225deg); }
+        .ray:nth-child(7) { transform: rotate(270deg); }
+        .ray:nth-child(8) { transform: rotate(315deg); }
+        
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
+    <!-- Telegram Web App -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Custom Scripts -->
+    <script src="js/realtime.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/mining.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="user-info">
+            <div class="user-id">UID: <span id="userId">Loading...</span></div>
+            <div class="level">Lv 0</div>
+        </div>
+        
+        <div class="balance-display">
+            <div class="token-icon">G</div>
+            <div class="balance-amount">
+                <span class="balance">0.000000</span> GEN
+                <div class="balance-usd">=0.000000 USDT</div>
+            </div>
+        </div>
+
+        <div class="mining-container">
+            <div class="mining-animation">
+                <div class="mining-coin"></div>
+                <div class="mining-rays">
+                    <div class="ray"></div>
+                    <div class="ray"></div>
+                    <div class="ray"></div>
+                    <div class="ray"></div>
+                    <div class="ray"></div>
+                    <div class="ray"></div>
+                    <div class="ray"></div>
+                    <div class="ray"></div>
+                </div>
+            </div>
+            <div class="mining-info">
+                <div class="info-item">
+                    <span class="info-label">Mining Rate:</span>
+                    <span class="info-value">2 GEN / H</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Next Reward:</span>
+                    <span id="nextMiningTime" class="info-value">Not mining</span>
+                </div>
+            </div>
+            <div class="mining-status">
+                <span id="miningStatus" class="status-badge status-inactive">Inactive</span>
+            </div>
+            <button class="mining-button" id="miningButton">Start Mining</button>
+        </div>
+
+        <div class="task-center">
+            <h2>Task Center</h2>
+            <div class="task-list">
+                <div class="task-card" data-task="telegram">
+                    <div class="task-icon">📱</div>
+                    <div class="task-info">
+                        <h3>Follow on Telegram</h3>
+                        <p>Follow our Telegram channel to earn points</p>
+                        <p class="task-progress">0/1</p>
+                    </div>
+                    <div class="task-reward">
+                        <span>+100</span>
+                        <button class="follow-btn">Follow</button>
+                    </div>
+                </div>
+
+                <div class="task-card" data-task="invite">
+                    <div class="task-icon">👥</div>
+                    <div class="task-info">
+                        <h3>Invite Friends</h3>
+                        <p>Invite friends to join and earn points</p>
+                        <p class="task-progress">0/5</p>
+                    </div>
+                    <div class="task-reward">
+                        <span>+50</span>
+                        <button class="invite-btn">Invite</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item active">
+            <img src="icons/home.svg" alt="Home">
+            <span>Home</span>
+        </a>
+        <a href="markets.html" class="nav-item">
+            <img src="icons/markets.svg" alt="Markets">
+            <span>Markets</span>
+        </a>
+        <a href="invite.html" class="nav-item">
+            <img src="icons/invite.svg" alt="Invite">
+            <span>Invite</span>
+        </a>
+        <a href="earn.html" class="nav-item">
+            <img src="icons/earn.svg" alt="Earn">
+            <span>Earn</span>
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <img src="icons/wallet.svg" alt="Wallet">
+            <span>Wallet</span>
+        </a>
+    </nav>
+    <script>
+        // Initialize Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Set theme based on Telegram's color scheme
+        document.body.classList.add(tg.colorScheme);
+        
+        // Initialize real-time data with user ID
+        window.addEventListener('load', () => {
+            if (window.realTimeData) {
+                const userId = tg.initDataUnsafe.user?.id;
+                if (userId) {
+                    console.log('Setting user ID:', userId);
+                    window.realTimeData.setUserId(userId);
+                    
+                    // Add listener for real-time updates
+                    window.realTimeData.addListener((data) => {
+                        console.log('Received real-time update:', data);
+                        
+                        // Update price display
+                        const priceElement = document.getElementById('gen-price');
+                        if (priceElement) {
+                            priceElement.textContent = `$${data.price.toFixed(6)}`;
+                        }
+                        
+                        // Update balances
+                        const genBalanceElement = document.getElementById('gen-balance');
+                        if (genBalanceElement) {
+                            genBalanceElement.textContent = data.genBalance.toFixed(2);
+                        }
+                        
+                        const usdtBalanceElement = document.getElementById('usdt-balance');
+                        if (usdtBalanceElement) {
+                            usdtBalanceElement.textContent = data.usdtBalance.toFixed(2);
+                        }
+                        
+                        // Update mining stats
+                        const miningRateElement = document.getElementById('mining-rate');
+                        if (miningRateElement) {
+                            miningRateElement.textContent = `${data.miningRate} GEN/hour`;
+                        }
+                        
+                        const miningTimeElement = document.getElementById('mining-time');
+                        if (miningTimeElement) {
+                            miningTimeElement.textContent = `${data.miningTime} hours`;
+                        }
+                    });
+                } else {
+                    console.error('No user ID available');
+                }
+            } else {
+                console.error('RealTimeData not initialized');
+            }
+            
+            // Load tasks
+            loadTasks();
+        });
+    </script>
+</body>
+</html> 

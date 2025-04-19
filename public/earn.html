@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earn - GEN Bot</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        .stake-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .stake-modal-content {
+            background: #1a1a1a;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .stake-input-group {
+            margin-bottom: 20px;
+        }
+
+        .stake-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #222;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .stake-btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .stake-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .stake-confirm {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .stake-cancel {
+            background: #f44336;
+            color: white;
+        }
+
+        .balance-info {
+            margin-bottom: 10px;
+            color: #888;
+        }
+
+        .error-message {
+            color: #f44336;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Earn GEN</h1>
+        <div class="earn-container">
+            <div class="earn-card">
+                <h3>Staking</h3>
+                <p>Stake GEN to earn rewards</p>
+                <div class="earn-details">
+                    <p>APY: <span id="stakingAPY">12%</span></p>
+                    <p>Min Stake: <span id="minStake">1000</span> GEN</p>
+                </div>
+                <div class="balance-info">
+                    Your Balance: <span id="userBalance">0</span> GEN
+                </div>
+                <button class="stake-btn" onclick="openStakeModal()">Stake Now</button>
+            </div>
+            <div class="earn-card">
+                <h3>Referral Program</h3>
+                <p>Invite friends to earn GEN</p>
+                <div class="earn-details">
+                    <p>Reward: 100 GEN per referral</p>
+                    <p>Your Referrals: 0</p>
+                </div>
+                <button class="refer-btn">Get Referral Link</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stake Modal -->
+    <div id="stakeModal" class="stake-modal">
+        <div class="stake-modal-content">
+            <h3>Stake GEN</h3>
+            <div class="stake-input-group">
+                <input type="number" id="stakeAmount" class="stake-input" placeholder="Enter amount to stake">
+                <div class="balance-info">
+                    Available Balance: <span id="availableBalance">0</span> GEN
+                </div>
+                <div id="stakeError" class="error-message"></div>
+            </div>
+            <div class="stake-btn-group">
+                <button class="stake-btn stake-confirm" onclick="confirmStake()">Confirm Stake</button>
+                <button class="stake-btn stake-cancel" onclick="closeStakeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <img src="icons/home.svg" alt="Home">
+            <span>Home</span>
+        </a>
+        <a href="markets.html" class="nav-item">
+            <img src="icons/markets.svg" alt="Markets">
+            <span>Markets</span>
+        </a>
+        <a href="invite.html" class="nav-item">
+            <img src="icons/invite.svg" alt="Invite">
+            <span>Invite</span>
+        </a>
+        <a href="earn.html" class="nav-item active">
+            <img src="icons/earn.svg" alt="Earn">
+            <span>Earn</span>
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <img src="icons/wallet.svg" alt="Wallet">
+            <span>Wallet</span>
+        </a>
+    </nav>
+    <script src="navigation.js"></script>
+    <script src="js/realtime.js"></script>
+    <script src="js/staking.js"></script>
+    <script>
+        // Initialize Telegram Web App
+        window.tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Set theme based on Telegram's color scheme
+        document.documentElement.setAttribute('data-theme', tg.colorScheme);
+        
+        // Initialize real-time data with user ID
+        if (window.realTimeData) {
+            const userId = tg.initDataUnsafe?.user?.id;
+            if (userId) {
+                realTimeData.setUserId(userId);
+                
+                // Load user data and staking information
+                loadUserData();
+                loadStakingPlans();
+                loadUserStakes();
+            }
+        }
+        
+        async function loadUserData() {
+            try {
+                const userId = tg.initDataUnsafe?.user?.id;
+                if (!userId) {
+                    throw new Error('No user ID available');
+                }
+                
+                const response = await fetch(`/api/user/balance?userId=${userId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch balance');
+                }
+                
+                const data = await response.json();
+                updateUserBalance(data);
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+        
+        function updateUserBalance(data) {
+            const genBalanceElement = document.getElementById('genBalance');
+            const usdtBalanceElement = document.getElementById('usdtBalance');
+            
+            if (genBalanceElement) {
+                genBalanceElement.textContent = data.genBalance.toFixed(2);
+            }
+            if (usdtBalanceElement) {
+                usdtBalanceElement.textContent = data.usdtBalance.toFixed(2);
+            }
+        }
+
+        let userBalance = 0;
+        let minStakeAmount = 0;
+
+        // Load staking plans
+        async function loadStakingPlans() {
+            try {
+                const response = await fetch('/api/staking/plans');
+                if (!response.ok) throw new Error('Failed to fetch staking plans');
+                
+                const plans = await response.json();
+                const activePlan = plans.find(plan => plan.status === 'active');
+                
+                if (activePlan) {
+                    document.getElementById('stakingAPY').textContent = `${activePlan.apy}%`;
+                    document.getElementById('minStake').textContent = activePlan.minAmount;
+                    minStakeAmount = activePlan.minAmount;
+                }
+            } catch (error) {
+                console.error('Error loading staking plans:', error);
+            }
+        }
+
+        // Open stake modal
+        function openStakeModal() {
+            document.getElementById('stakeModal').style.display = 'block';
+            document.getElementById('stakeAmount').value = '';
+            document.getElementById('stakeError').style.display = 'none';
+        }
+
+        // Close stake modal
+        function closeStakeModal() {
+            document.getElementById('stakeModal').style.display = 'none';
+        }
+
+        // Validate stake amount
+        function validateStakeAmount(amount) {
+            const errorElement = document.getElementById('stakeError');
+            
+            if (!amount || amount <= 0) {
+                errorElement.textContent = 'Please enter a valid amount';
+                errorElement.style.display = 'block';
+                return false;
+            }
+            
+            if (amount < minStakeAmount) {
+                errorElement.textContent = `Minimum stake amount is ${minStakeAmount} GEN`;
+                errorElement.style.display = 'block';
+                return false;
+            }
+            
+            if (amount > userBalance) {
+                errorElement.textContent = 'Insufficient balance';
+                errorElement.style.display = 'block';
+                return false;
+            }
+            
+            errorElement.style.display = 'none';
+            return true;
+        }
+
+        // Confirm stake
+        async function confirmStake() {
+            const amount = parseFloat(document.getElementById('stakeAmount').value);
+            
+            if (!validateStakeAmount(amount)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/staking/stake', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ amount })
+                });
+
+                if (!response.ok) throw new Error('Failed to stake');
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('Staking successful!');
+                    closeStakeModal();
+                    loadUserData(); // Refresh balance
+                    loadUserStakes(); // Refresh stakes list
+                } else {
+                    throw new Error(result.message || 'Staking failed');
+                }
+            } catch (error) {
+                console.error('Error staking:', error);
+                document.getElementById('stakeError').textContent = error.message;
+                document.getElementById('stakeError').style.display = 'block';
+            }
+        }
+
+        // Listen for staking plan updates
+        if (window.BroadcastChannel) {
+            const channel = new BroadcastChannel('staking-updates');
+            channel.addEventListener('message', (event) => {
+                if (event.data.type === 'plans-updated') {
+                    loadStakingPlans();
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEN Bot - Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #121212;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .admin-title {
+            color: #4CAF50;
+            font-size: 24px;
+        }
+
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            color: #4CAF50;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 14px;
+        }
+
+        .admin-sections {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .section-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            color: white;
+            font-size: 18px;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .edit-btn {
+            background: #2196F3;
+            color: white;
+        }
+
+        .save-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .cancel-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #222;
+            color: white;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #222;
+            color: white;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        .data-table th {
+            color: #4CAF50;
+            font-weight: 500;
+        }
+
+        .data-table td {
+            color: #888;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .status-active {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+        }
+
+        .status-inactive {
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+        }
+
+        .action-icon {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .action-icon:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="admin-header">
+            <h1 class="admin-title">Admin Panel</h1>
+            <div class="admin-actions">
+                <button class="action-btn save-btn" onclick="saveAllChanges()">Save All Changes</button>
+            </div>
+        </div>
+
+        <div class="admin-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalUsers">0</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="activeUsers">0</div>
+                <div class="stat-label">Active Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalVolume">0</div>
+                <div class="stat-label">Total Volume (USDT)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalReferrals">0</div>
+                <div class="stat-label">Total Referrals</div>
+            </div>
+        </div>
+
+        <div class="admin-sections">
+            <!-- Token Settings -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">Token Settings</h2>
+                    <div class="section-actions">
+                        <button class="action-btn edit-btn" onclick="editTokenSettings()">Edit</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label class="form-label">Token Price (USDT)</label>
+                        <input type="number" class="form-input" id="tokenPrice" value="0.000013" step="0.000001">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Admin Fee (%)</label>
+                        <input type="number" class="form-input" id="adminFee" value="12" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Minimum Swap Amount</label>
+                        <input type="number" class="form-input" id="minSwapAmount" value="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <button class="action-btn save-btn" onclick="updateTokenPrice()">Update Token Price</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Referral Settings -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">Referral Settings</h2>
+                    <div class="section-actions">
+                        <button class="action-btn edit-btn" onclick="editReferralSettings()">Edit</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label class="form-label">Level 1 Commission (%)</label>
+                        <input type="number" class="form-input" id="level1Commission" value="4" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Level 2 Commission (%)</label>
+                        <input type="number" class="form-input" id="level2Commission" value="2" step="0.1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mining Settings -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">Mining Settings</h2>
+                    <div class="section-actions">
+                        <button class="action-btn edit-btn" onclick="editMiningSettings()">Edit</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label class="form-label">Mining Rate (GEN/H)</label>
+                        <input type="number" class="form-input" id="miningRate" value="2" step="0.1" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mining Interval (Hours)</label>
+                        <input type="number" class="form-input" id="miningInterval" value="1" step="0.1" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mining Status</label>
+                        <select class="form-select" id="miningStatus">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">User Management</h2>
+                    <div class="section-actions">
+                        <button class="action-btn edit-btn" onclick="refreshUsers()">Refresh</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Balance</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Balance Management Modal -->
+            <div id="balanceModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Manage User Balance</h3>
+                        <span class="close" onclick="closeBalanceModal()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">User ID</label>
+                            <input type="text" class="form-input" id="balanceUserId" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Current Balance</label>
+                            <input type="text" class="form-input" id="currentBalance" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Action</label>
+                            <select class="form-select" id="balanceAction">
+                                <option value="add">Add Balance</option>
+                                <option value="subtract">Subtract Balance</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Amount (GEN)</label>
+                            <input type="number" class="form-input" id="balanceAmount" placeholder="Enter amount">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Reason</label>
+                            <textarea class="form-input" id="balanceReason" placeholder="Enter reason for balance change"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <button class="action-btn save-btn" onclick="updateUserBalance()">Update Balance</button>
+                            <button class="action-btn cancel-btn" onclick="closeBalanceModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">Transaction History</h2>
+                    <div class="section-actions">
+                        <button class="action-btn edit-btn" onclick="refreshTransactions()">Refresh</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>User</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsTableBody">
+                            <!-- Transactions will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- System Settings -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">System Settings</h2>
+                    <div class="section-actions">
+                        <button class="action-btn edit-btn" onclick="editSystemSettings()">Edit</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label class="form-label">Maintenance Mode</label>
+                        <select class="form-select" id="maintenanceMode">
+                            <option value="false">Disabled</option>
+                            <option value="true">Enabled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Minimum Deposit (USDT)</label>
+                        <input type="number" class="form-input" id="minDeposit" value="2" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Minimum Withdrawal (USDT)</label>
+                        <input type="number" class="form-input" id="minWithdrawal" value="5" step="0.1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Management -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">Admin Management</h2>
+                    <div class="section-actions">
+                        <button class="action-btn edit-btn" onclick="addNewAdmin()">Add Admin</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Admin ID</th>
+                                    <th>Added By</th>
+                                    <th>Added On</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminsTableBody">
+                                <!-- Admins will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staking Plans Management -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">Staking Plans</h2>
+                    <div class="section-actions">
+                        <button class="action-btn edit-btn" onclick="addNewStakingPlan()">Add Plan</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Plan Name</th>
+                                    <th>Duration (Days)</th>
+                                    <th>APY (%)</th>
+                                    <th>Min Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stakingPlansTableBody">
+                                <!-- Staking plans will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Management -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">Task Management</h2>
+                    <div class="section-actions">
+                        <button class="action-btn edit-btn" onclick="addNewTask()">Add Task</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Task Name</th>
+                                    <th>Reward (GEN)</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tasksTableBody">
+                                <!-- Tasks will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Admin Modal -->
+    <div id="addAdminModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Admin</h3>
+                <span class="close" onclick="closeAddAdminModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Telegram ID</label>
+                    <input type="text" class="form-input" id="newAdminId" placeholder="Enter Telegram ID">
+                </div>
+                <div class="form-group">
+                    <button class="action-btn save-btn" onclick="saveNewAdmin()">Add Admin</button>
+                    <button class="action-btn cancel-btn" onclick="closeAddAdminModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Staking Plan Modal -->
+    <div id="addStakingPlanModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Staking Plan</h3>
+                <span class="close" onclick="closeAddStakingPlanModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Plan Name</label>
+                    <input type="text" class="form-input" id="planName" placeholder="Enter plan name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Duration (Days)</label>
+                    <input type="number" class="form-input" id="planDuration" placeholder="Enter duration in days">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">APY (%)</label>
+                    <input type="number" class="form-input" id="planAPY" placeholder="Enter APY percentage">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Minimum Amount (GEN)</label>
+                    <input type="number" class="form-input" id="planMinAmount" placeholder="Enter minimum amount">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="planStatus">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button class="action-btn save-btn" onclick="saveNewStakingPlan()">Add Plan</button>
+                    <button class="action-btn cancel-btn" onclick="closeAddStakingPlanModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="addTaskModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Task</h3>
+                <span class="close" onclick="closeAddTaskModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Task Name</label>
+                    <input type="text" class="form-input" id="taskName" placeholder="Enter task name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Task Description</label>
+                    <textarea class="form-input" id="taskDescription" placeholder="Enter task description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Reward (GEN)</label>
+                    <input type="number" class="form-input" id="taskReward" placeholder="Enter reward amount">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Task Type</label>
+                    <select class="form-select" id="taskType">
+                        <option value="social">Social Media</option>
+                        <option value="referral">Referral</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="taskStatus">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button class="action-btn save-btn" onclick="saveNewTask()">Add Task</button>
+                    <button class="action-btn cancel-btn" onclick="closeAddTaskModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+    <script>
+        // Initialize Telegram Web App
+        const webApp = window.Telegram.WebApp;
+        
+        // Expand the web app to full height
+        webApp.expand();
+
+        // Handle theme changes
+        webApp.onEvent('themeChanged', () => {
+            document.body.classList.toggle('dark', webApp.colorScheme === 'dark');
+        });
+
+        // Set initial theme
+        document.body.classList.toggle('dark', webApp.colorScheme === 'dark');
+
+        // Check admin access
+        const user = webApp.initDataUnsafe.user;
+        if (!user || !isAdmin(user.id)) {
+            window.location.href = 'index.html';
+        }
+
+        // Initialize admin panel
+        initAdminPanel();
+    </script>
+</body>
+</html> 

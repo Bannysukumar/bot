@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEN Bot - Wallet</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Add Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="wallet-header">
+            <h2>My Wallet</h2>
+            <div class="wallet-address">
+                <span id="walletAddress">Loading...</span>
+                <button id="copyAddress" class="copy-btn">
+                    <img src="icons/copy.svg" alt="Copy">
+                </button>
+            </div>
+        </div>
+
+        <div class="balance-cards">
+            <div class="balance-card">
+                <div class="token-info">
+                    <img src="icons/gen.svg" alt="GEN" class="token-icon">
+                    <span class="token-name">GEN</span>
+                </div>
+                <div class="balance-amount" id="genBalance">0.00</div>
+                <div class="balance-value" id="genValue">$0.00</div>
+            </div>
+            <div class="balance-card">
+                <div class="token-info">
+                    <img src="icons/usdt.svg" alt="USDT" class="token-icon">
+                    <span class="token-name">USDT</span>
+                </div>
+                <div class="balance-amount" id="usdtBalance">0.00</div>
+                <div class="balance-value" id="usdtValue">$0.00</div>
+            </div>
+        </div>
+
+        <div class="wallet-actions">
+            <button class="action-btn deposit-btn" onclick="showDepositModal()">
+                <img src="icons/deposit.svg" alt="Deposit">
+                <span>Deposit</span>
+            </button>
+            <button class="action-btn withdraw-btn" onclick="showWithdrawModal()">
+                <img src="icons/withdraw.svg" alt="Withdraw">
+                <span>Withdraw</span>
+            </button>
+        </div>
+
+        <div class="swap-section">
+            <div class="section-header">
+                <h3>Swap GEN to USDT</h3>
+                <div class="info-badge">
+                    <img src="icons/info.svg" alt="Info">
+                    <span>12% Admin Fee</span>
+                </div>
+            </div>
+            
+            <div class="swap-container">
+                <div class="swap-form">
+                    <div class="form-header">
+                        <div class="token-selector">
+                            <img src="icons/gen.svg" alt="GEN" class="token-icon">
+                            <span>GEN</span>
+                            <img src="icons/arrow-right.svg" alt="To" class="arrow-icon">
+                            <img src="icons/usdt.svg" alt="USDT" class="token-icon">
+                            <span>USDT</span>
+                        </div>
+                        <div class="min-amount">
+                            <span>Min: 100 GEN</span>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-header">
+                            <label>Amount</label>
+                            <div class="balance-info">
+                                <span>Balance:</span>
+                                <span id="availableBalance">0.00 GEN</span>
+                            </div>
+                        </div>
+                        <div class="amount-input">
+                            <input type="number" id="swapAmount" placeholder="0.00" min="100" step="0.01">
+                            <button class="max-btn">MAX</button>
+                        </div>
+                    </div>
+
+                    <div class="swap-details">
+                        <div class="detail-item">
+                            <span class="label">Price</span>
+                            <span class="value">1 GEN = 0.000013 USDT</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">You will receive</span>
+                            <span class="value" id="receiveAmount">0.00 USDT</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Admin Fee (12%)</span>
+                            <span class="value" id="feeAmount">0.00 GEN</span>
+                        </div>
+                    </div>
+
+                    <button id="swapButton" class="swap-btn">
+                        <span>Swap GEN to USDT</span>
+                        <img src="icons/swap.svg" alt="Swap" class="btn-icon">
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="transaction-history">
+            <h3>Transaction History</h3>
+            <div class="history-list" id="historyList">
+                <!-- Transactions will be populated here -->
+            </div>
+        </div>
+
+        <!-- Deposit Modal -->
+        <div id="depositModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Deposit USDT</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="deposit-info">
+                        <div class="qr-section">
+                            <img id="depositQR" alt="Deposit QR Code" class="qr-code">
+                            <p class="network-info">Network: TRC20</p>
+                        </div>
+                        <div class="wallet-section">
+                            <p class="wallet-label">Wallet Address:</p>
+                            <div class="wallet-address-container">
+                                <input type="text" id="depositAddress" readonly class="wallet-address" value="TYourWalletAddressHere">
+                                <button class="copy-address" onclick="copyDepositAddress()">
+                                    <img src="icons/copy.svg" alt="Copy" class="copy-icon">
+                                </button>
+                            </div>
+                        </div>
+                        <div class="deposit-requirements">
+                            <p class="min-deposit">Minimum Deposit: 2 USDT</p>
+                            <p class="warning">Please ensure you're using TRC20 network for the deposit</p>
+                        </div>
+                    </div>
+                    <form id="depositForm" class="deposit-form">
+                        <div class="form-group">
+                            <label for="depositAmount">Amount (USDT)</label>
+                            <input type="number" id="depositAmount" min="2" step="0.01" required placeholder="Enter amount (min 2 USDT)">
+                        </div>
+                        <div class="form-group">
+                            <label for="transactionHash">Transaction Hash</label>
+                            <input type="text" id="transactionHash" required placeholder="Enter your transaction hash">
+                        </div>
+                        <button type="submit" class="submit-deposit">Submit Deposit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdraw Modal -->
+        <div id="withdrawModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Withdraw USDT</h2>
+                    <span class="close-modal-withdraw">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="wallet-binding-section" id="walletBindingSection">
+                        <h3>Bind Your BEP20 Wallet</h3>
+                        <p class="warning-text">Warning: Your wallet address cannot be changed after binding!</p>
+                        <div class="form-group">
+                            <label for="bindWalletAddress">BEP20 Wallet Address</label>
+                            <input type="text" id="bindWalletAddress" placeholder="Enter your BEP20 wallet address" required>
+                        </div>
+                        <button id="bindWalletBtn" class="bind-wallet-btn">Bind Wallet</button>
+                    </div>
+
+                    <div class="withdraw-form-section" id="withdrawFormSection" style="display: none;">
+                        <div class="bound-wallet-info">
+                            <h3>Your Bound Wallet</h3>
+                            <div class="bound-address-container">
+                                <span id="boundWalletAddress" class="bound-address"></span>
+                                <div class="network-badge">BEP20</div>
+                            </div>
+                        </div>
+
+                        <div class="withdraw-requirements">
+                            <p class="min-withdraw">Minimum Withdrawal: 5 USDT</p>
+                            <p class="fee-info">Fee: 1 USDT</p>
+                            <p class="warning">Please ensure your wallet supports BEP20 network</p>
+                        </div>
+
+                        <form id="withdrawForm" class="withdraw-form">
+                            <div class="form-group">
+                                <label for="withdrawAmount">Amount (USDT)</label>
+                                <div class="amount-input-container">
+                                    <input type="number" id="withdrawAmount" min="5" step="0.01" required placeholder="Enter amount (min 5 USDT)">
+                                    <button type="button" class="max-withdraw-btn">MAX</button>
+                                </div>
+                                <p class="receive-amount">You will receive: <span id="receiveWithdrawAmount">0</span> USDT</p>
+                            </div>
+                            <button type="submit" class="submit-withdraw">Withdraw</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <img src="icons/home.svg" alt="Home">
+            <span>Home</span>
+        </a>
+        <a href="markets.html" class="nav-item">
+            <img src="icons/markets.svg" alt="Markets">
+            <span>Markets</span>
+        </a>
+        <a href="invite.html" class="nav-item">
+            <img src="icons/invite.svg" alt="Invite">
+            <span>Invite</span>
+        </a>
+        <a href="earn.html" class="nav-item">
+            <img src="icons/earn.svg" alt="Earn">
+            <span>Earn</span>
+        </a>
+        <a href="wallet.html" class="nav-item active">
+            <img src="icons/wallet.svg" alt="Wallet">
+            <span>Wallet</span>
+        </a>
+    </nav>
+
+    <script src="wallet.js"></script>
+    <script src="js/realtime.js"></script>
+    <script src="js/navigation.js"></script>
+    <script>
+        // Initialize Telegram Web App
+        window.tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Set theme based on Telegram's color scheme
+        document.documentElement.setAttribute('data-theme', tg.colorScheme);
+        
+        // Initialize real-time data with user ID
+        if (window.realTimeData) {
+            const userId = tg.initDataUnsafe?.user?.id;
+            if (userId) {
+                realTimeData.setUserId(userId);
+                
+                // Add listener for real-time updates
+                realTimeData.addListener((data) => {
+                    // Update balances
+                    const genBalanceElement = document.getElementById('genBalance');
+                    const usdtBalanceElement = document.getElementById('usdtBalance');
+                    
+                    if (genBalanceElement) {
+                        genBalanceElement.textContent = data.genBalance.toFixed(2);
+                    }
+                    if (usdtBalanceElement) {
+                        usdtBalanceElement.textContent = data.usdtBalance.toFixed(2);
+                    }
+                    
+                    // Update transaction history
+                    if (data.transactions) {
+                        updateTransactionHistory(data.transactions);
+                    }
+                });
+            }
+        }
+        
+        function updateTransactionHistory(transactions) {
+            const historyContainer = document.getElementById('historyList');
+            if (!historyContainer) return;
+            
+            historyContainer.innerHTML = transactions.map(tx => `
+                <div class="transaction-item">
+                    <div class="transaction-type ${tx.type}">${tx.type}</div>
+                    <div class="transaction-amount">${tx.amount} ${tx.currency}</div>
+                    <div class="transaction-date">${new Date(tx.timestamp).toLocaleString()}</div>
+                    <div class="transaction-status ${tx.status}">${tx.status}</div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html> 
